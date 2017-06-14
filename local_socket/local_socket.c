@@ -22,8 +22,10 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <stdio.h>
+#include <string.h>
 
 #define SERVER_PORT 13254
+#define CLIENT_PORT 13255
 #define BUFLEN 128
 #define LOCAL_IP_ADDR "127.0.0.1"
 
@@ -32,9 +34,9 @@ void run_serve(int sockfd)
 	int	n;
 	socklen_t		alen;
 	char			buf[BUFLEN];
-	struct sockaddr	addr;
+	struct sockaddr_in	addr;
 
-	n = recvfrom(sockfd, buf, BUFLEN, 0, &addr, &alen);
+	n = recvfrom(sockfd, buf, BUFLEN, 0, (struct sockaddr_in *) &addr, &alen);
 	if(n < 0)
 	{
 		printf("run_serve : recv error!\n");
@@ -43,6 +45,11 @@ void run_serve(int sockfd)
 	}
 	buf[BUFLEN - 1] = '\0';
 	printf("run_serve rcv string: %s\n", buf);
+	addr.sin_family = AF_INET;
+	inet_pton(AF_INET, LOCAL_IP_ADDR, &addr.sin_addr);
+	addr.sin_port = htons(CLIENT_PORT);
+	strcat(buf, " response from run serve!");
+	n = sendto(sockfd, buf, ((strlen(buf) + 1) < BUFLEN)? strlen(buf) + 1 : BUFLEN , 0, &addr, sizeof(addr));
 		
 }
 
@@ -54,6 +61,7 @@ void* client_run(void *arg)
 	char buf[BUFLEN];
 	int ret;
 	int n;
+	struct sockaddr_in rcv_addr;
 
 	client_fd = socket(AF_INET, SOCK_DGRAM, 0);
 	if(client_fd < 0)
@@ -61,10 +69,13 @@ void* client_run(void *arg)
 		pthread_exit((void *) client_fd);
 	}
 	bzero((char *) &addr, sizeof(addr));
+	rcv_addr.sin_family = AF_INET;
+	inet_pton(AF_INET, LOCAL_IP_ADDR, &rcv_addr.sin_addr);
+	rcv_addr.sin_port = htons(CLIENT_PORT);
 	addr.sin_family = AF_INET;
 	inet_pton(AF_INET, LOCAL_IP_ADDR, &addr.sin_addr);
 	addr.sin_port = htons(SERVER_PORT);
-
+	ret = bind(client_fd, (struct sockaddr *)&rcv_addr, sizeof(struct sockaddr_in));
 	while(1)
 	{
 		printf("enter your request \n");
@@ -77,6 +88,9 @@ void* client_run(void *arg)
 			printf("client_run : recv error!\n");
 		}
 		printf("client_run : send OK!!\n");
+		n = recvfrom(client_fd, buf, BUFLEN, 0, &rcv_addr, &alen);
+		printf("client run: %s\n", buf);
+
 	}
 
 }
