@@ -1,14 +1,14 @@
 LD = g++
-CC =gcc
+CC = gcc
 
-TARGET = opencv3_demo
+TARGET = img_show_opencv
 
-SRCS = opencv3_demo.cpp
+SRCS = img_show_opencv.cpp
 
 OBJS = $(SRCS:.cpp=.o)
 
 DLIBS := -L/usr/local/lib
-DLIBS += -lopencv_core -lopencv_imgcodecs -lopencv_imgproc -lopencv_highgui
+DLIBS += -lopencv_core -lopencv_imgcodecs  -lopencv_highgui
 
 
 $(TARGET):$(OBJS)
